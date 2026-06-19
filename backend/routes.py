@@ -32,14 +32,30 @@ async def parse(req: ParseRequest):
 
 @router.post("/download")
 async def create_download(req: DownloadRequest):
-    task_id = await task_manager.create_task(
-        url=req.url,
-        format_id=req.format_id,
-        subtitle_lang=req.subtitle_lang,
-        playlist_id=req.playlist_id,
-    )
-    await task_manager.start_download(task_id)
-    return {"task_id": task_id}
+    # First parse to check if it's a playlist
+    from ytdlp_service import parse_url
+    info = await parse_url(req.url)
+
+    if info.is_playlist:
+        # Create playlist + individual tasks
+        playlist_id = await task_manager.create_playlist(
+            url=req.url,
+            format_id=req.format_id,
+            subtitle_lang=req.subtitle_lang,
+        )
+        # Start all pending tasks for this playlist
+        await task_manager.start_all_pending()
+        return {"playlist_id": playlist_id, "is_playlist": True}
+    else:
+        # Single video download
+        task_id = await task_manager.create_task(
+            url=req.url,
+            format_id=req.format_id,
+            subtitle_lang=req.subtitle_lang,
+            playlist_id=req.playlist_id,
+        )
+        await task_manager.start_download(task_id)
+        return {"task_id": task_id}
 
 
 @router.get("/downloads")

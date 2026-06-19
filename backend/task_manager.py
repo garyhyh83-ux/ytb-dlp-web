@@ -4,7 +4,7 @@ import uuid
 import time
 from typing import Optional
 from database import get_db
-from ytdlp_service import parse_url, download_video
+from ytdlp_service import parse_url, download_video, parse_playlist, detect_platform
 from models import TaskStatus
 
 
@@ -52,6 +52,51 @@ class TaskManager:
 
         await self._broadcast()
         return task_id
+
+    async def create_playlist(
+        self, url: str, format_id: str | None = None,
+        subtitle_lang: str | None = None
+    ) -> str:
+        """Parse a playlist URL, create playlist entry + individual video tasks.
+        Returns playlist ID."""
+        playlist_info, entries = await parse_playlist(url)
+        playlist_id = str(uuid.uuid4())[:8]
+
+        db = await get_db()
+        try:
+            await db.execute(
+                """INSERT INTO playlists (id, url, title, thumbnail, platform,
+                   total_count, completed_count, status)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                (playlist_id, playlist_info.webpage_url, playlist_info.title,
+                 playlist_info.thumbnail, playlist_info.platform,
+                 len(entries), 0, "downloading"),
+            )
+            await db.commit()
+        finally:
+            await db.close()
+
+        # Create individual tasks for each video
+        for i, entry in enumerate(entries):
+            if not entry["url"]:
+                continue
+            task_id = str(uuid.uuid4())[:8]
+            db = await get_db()
+            try:
+                await db.execute(
+                    """INSERT INTO tasks (id, url, title, thumbnail, platform, format_id,
+                       format_note, status, playlist_id, playlist_index)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    (task_id, entry["url"], entry["title"],
+                     entry["thumbnail"], detect_platform(entry["url"]), format_id,
+                     None, TaskStatus.PENDING.value, playlist_id, i + 1),
+                )
+                await db.commit()
+            finally:
+                await db.close()
+
+        await self._broadcast()
+        return playlist_id
 
     async def start_download(self, task_id: str):
         """Begin downloading a pending/paused task."""

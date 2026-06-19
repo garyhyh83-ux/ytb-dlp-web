@@ -22,7 +22,7 @@ def _extract_info(url: str, download: bool, options: dict | None = None) -> dict
         return ydl.extract_info(url, download=download)
 
 
-def _detect_platform(url: str) -> str:
+def detect_platform(url: str) -> str:
     url_lower = url.lower()
     if "bilibili.com" in url_lower or "b23.tv" in url_lower:
         return "bilibili"
@@ -62,7 +62,7 @@ def _info_to_video(info: dict) -> VideoInfo:
         title=info.get("title", "Unknown"),
         thumbnail=info.get("thumbnail"),
         duration=info.get("duration"),
-        platform=_detect_platform(info.get("webpage_url", "")),
+        platform=detect_platform(info.get("webpage_url", "")),
         webpage_url=info.get("webpage_url", ""),
         is_playlist=is_playlist,
         playlist_title=info.get("title") if is_playlist else None,
@@ -70,6 +70,29 @@ def _info_to_video(info: dict) -> VideoInfo:
         formats=formats,
         subtitles=info.get("subtitles", {}),
     )
+
+
+async def parse_playlist(url: str) -> tuple[VideoInfo, list[dict]]:
+    """Parse a playlist URL, return playlist info and list of video entries."""
+    loop = asyncio.get_running_loop()
+    info = await loop.run_in_executor(
+        EXECUTOR, partial(_extract_info, url, False)
+    )
+    playlist_info = _info_to_video(info)
+
+    entries: list[dict] = []
+    raw_entries = info.get("entries", [])
+    if isinstance(raw_entries, list):
+        for entry in raw_entries:
+            if entry and isinstance(entry, dict):
+                entries.append({
+                    "url": entry.get("webpage_url") or entry.get("url") or entry.get("original_url", ""),
+                    "title": entry.get("title", "Unknown"),
+                    "thumbnail": entry.get("thumbnail"),
+                    "duration": entry.get("duration"),
+                })
+
+    return playlist_info, entries
 
 
 async def download_video(
