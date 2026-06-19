@@ -286,10 +286,14 @@ class TaskManager:
     async def _broadcast(self):
         if self._ws_broadcast:
             tasks = await self.get_tasks()
-            await self._ws_broadcast({
+            msg = {
                 "type": "tasks_update",
                 "tasks": tasks,
-            })
+            }
+            result = self._ws_broadcast(msg)
+            # _ws_broadcast may be sync (lambda) or async (websocket handler)
+            if hasattr(result, '__await__'):
+                await result
 
 
 # Singleton
