@@ -1,0 +1,77 @@
+/* ==========================================================================
+   yt-dlp Web – App.css
+   Application layout: topbar, main area, shell.
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   App shell
+   -------------------------------------------------------------------------- */
+.app-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+/* --------------------------------------------------------------------------
+   Topbar
+   -------------------------------------------------------------------------- */
+.app-topbar {
+  height: var(--topbar-height);
+  min-height: var(--topbar-height);
+  background-color: var(--bg-surface);
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  gap: 10px;
+  user-select: none;
+  z-index: 10;
+}
+
+.app-topbar-logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--accent);
+  letter-spacing: -0.01em;
+}
+
+.app-topbar-logo svg {
+  width: 24px;
+  height: 24px;
+}
+
+.app-topbar-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-left: 4px;
+  padding-left: 10px;
+  border-left: 1px solid var(--border-default);
+}
+
+.app-topbar-spacer {
+  flex: 1;
+}
+
+/* --------------------------------------------------------------------------
+   Body (sidebar + main)
+   -------------------------------------------------------------------------- */
+.app-body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.app-main {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background-color: var(--bg-root);
+  padding: 24px;
+}
