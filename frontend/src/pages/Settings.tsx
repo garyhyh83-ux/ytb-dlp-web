@@ -11,7 +11,6 @@ export default function Settings() {
   const [scheduledJobs, setScheduledJobs] = useState<any[]>([]);
   const [scheduledUrl, setScheduledUrl] = useState('');
   const [scheduledCron, setScheduledCron] = useState('daily');
-  const [showDirPicker, setShowDirPicker] = useState(false);
 
   const fetchScheduledJobs = () => {
     api.getScheduledJobs().then(d => setScheduledJobs(d.jobs));
@@ -47,18 +46,10 @@ export default function Settings() {
 
         <div className="setting-row">
           <label>下载目录</label>
-          <div className="setting-input-group">
-            <input
-              type="text"
-              value={settings.download_dir || 'downloads'}
-              onChange={e => setSettings({ ...settings, download_dir: e.target.value })}
-              onBlur={() => handleSave('download_dir', settings.download_dir)}
-              style={{ width: '280px' }}
-            />
-            <button className="batch-btn" onClick={() => setShowDirPicker(true)}>
-              📂 浏览
-            </button>
-          </div>
+          <DirectoryPicker
+            value={settings.download_dir || 'downloads'}
+            onSelect={(path) => handleSave('download_dir', path)}
+          />
         </div>
 
         <div className="setting-row">
@@ -174,16 +165,6 @@ export default function Settings() {
         </div>
       </section>
 
-      {showDirPicker && (
-        <DirectoryPicker
-          value={settings.download_dir || 'downloads'}
-          onSelect={async (path) => {
-            await handleSave('download_dir', path);
-            setShowDirPicker(false);
-          }}
-          onClose={() => setShowDirPicker(false)}
-        />
-      )}
     </div>
   );
 }
