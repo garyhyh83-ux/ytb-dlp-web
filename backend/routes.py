@@ -3,6 +3,7 @@ import asyncio
 import json
 import os
 import uuid
+from fastapi.responses import FileResponse
 import shutil
 from pathlib import Path
 from fastapi import APIRouter, HTTPException, UploadFile, WebSocket, WebSocketDisconnect
@@ -183,6 +184,16 @@ async def list_playlists():
         return {"playlists": playlists}
     finally:
         await db.close()
+
+
+# ── Media Serving ──────────────────────────────────
+
+@router.get("/media")
+async def serve_media(path: str):
+    """Serve downloaded video files with range request support."""
+    if not os.path.isfile(path):
+        raise HTTPException(status_code=404, detail="File not found")
+    return FileResponse(path, media_type="video/mp4")
 
 
 # ── Browse Filesystem ──────────────────────────────
