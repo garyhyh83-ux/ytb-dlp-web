@@ -25,12 +25,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Import and register routes (lazy — routes.py created in Task 7)
-try:
-    from routes import router
-    app.include_router(router, prefix="/api")
-except ImportError:
-    pass
+from routes import router
+app.include_router(router, prefix="/api")
 
 # Serve frontend static files in production
 frontend_dist = Path(__file__).parent.parent / "frontend" / "dist"
