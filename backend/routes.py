@@ -169,6 +169,43 @@ async def list_playlists():
         await db.close()
 
 
+# ── Browse Filesystem ──────────────────────────────
+
+@router.get("/browse")
+async def browse_directories(path: str = ""):
+    """List subdirectories at the given path. Used by directory picker."""
+    import os as _os
+    if not path:
+        # Windows: list drives
+        import string
+        drives = []
+        for letter in string.ascii_uppercase:
+            drive = f"{letter}:\\"
+            if _os.path.exists(drive):
+                drives.append({"name": drive, "path": drive, "is_drive": True})
+        return {"path": "", "entries": drives}
+
+    base = _os.path.abspath(path)
+    if not _os.path.isdir(base):
+        raise HTTPException(status_code=400, detail=f"Not a directory: {base}")
+
+    parent = _os.path.dirname(base)
+    if parent == base:
+        parent = ""  # root
+
+    entries = [{"name": "..", "path": parent, "is_parent": True}]
+
+    try:
+        for name in sorted(_os.listdir(base)):
+            full = _os.path.join(base, name)
+            if _os.path.isdir(full) and not name.startswith("."):
+                entries.append({"name": name, "path": full})
+    except PermissionError:
+        pass
+
+    return {"path": base, "entries": entries}
+
+
 # ── Settings ───────────────────────────────────────
 
 @router.get("/settings")

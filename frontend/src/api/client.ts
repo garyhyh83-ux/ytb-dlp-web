@@ -78,6 +78,11 @@ export const api = {
 
   getStats: () => request<any>('/stats'),
 
+  browseDirectories: (path?: string) =>
+    request<{ path: string; entries: { name: string; path: string }[] }>(
+      `/browse${path ? `?path=${encodeURIComponent(path)}` : ''}`
+    ),
+
   getScheduledJobs: () => request<{ jobs: any[] }>('/scheduled-jobs'),
 
   createScheduledJob: (playlistUrl: string, cronExpr: string) =>
