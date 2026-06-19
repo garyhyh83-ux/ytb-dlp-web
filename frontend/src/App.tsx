@@ -18,13 +18,13 @@ function App() {
   const { tasks, connected } = useWebSocket();
 
   const activeDownloads = tasks.filter(
-    t => t.status === 'downloading' || t.status === 'paused' || t.status === 'pending'
+    t => t.status !== 'done'
   ).length;
 
   const pageComponent = useCallback(() => {
     switch (page) {
       case 'new': return <NewDownload />;
-      case 'downloading': return <Downloading tasks={tasks.filter(t => t.status !== 'done' && t.status !== 'failed')} />;
+      case 'downloading': return <Downloading tasks={tasks.filter(t => t.status !== 'done')} />;
       case 'completed': return <Completed />;
       case 'playlists': return <Playlists />;
       case 'settings': return <Settings />;
