@@ -53,7 +53,6 @@ async def lifespan(app: FastAPI):
             except Exception:
                 pass
 
-    import asyncio
     scheduler_task = asyncio.create_task(scheduler_loop())
     yield
     scheduler_task.cancel()
@@ -77,3 +76,8 @@ app.include_router(router, prefix="/api")
 frontend_dist = Path(__file__).parent.parent / "frontend" / "dist"
 if frontend_dist.exists():
     app.mount("/", StaticFiles(directory=str(frontend_dist), html=True), name="static")
+
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
