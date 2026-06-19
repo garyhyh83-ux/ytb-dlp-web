@@ -116,6 +116,8 @@ async def download_video(
         "no_warnings": True,
         "progress_hooks": [progress_callback],
         "noprogress": True,
+        "continuedl": False,  # Start fresh, avoid HTTP 416 on stale .part files
+        "overwrites": True,   # Overwrite if file exists
     }
 
     if format_id:
