@@ -44,6 +44,9 @@ export const api = {
   resumeAll: () =>
     request<any>('/downloads/resume-all', { method: 'POST' }),
 
+  clearHistory: () =>
+    request<any>('/history', { method: 'DELETE' }),
+
   getHistory: (params: {
     search?: string;
     platform?: string;

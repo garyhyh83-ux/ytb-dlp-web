@@ -105,6 +105,18 @@ async def resume_all():
 
 # ── History ────────────────────────────────────────
 
+@router.delete("/history")
+async def clear_history():
+    """Delete all completed (done) tasks from history."""
+    db = await get_db()
+    try:
+        await db.execute("DELETE FROM tasks WHERE status = 'done'")
+        await db.commit()
+        return {"status": "cleared"}
+    finally:
+        await db.close()
+
+
 @router.get("/history")
 async def list_history(
     search: str | None = None,
