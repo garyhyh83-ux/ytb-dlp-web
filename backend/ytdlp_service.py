@@ -115,9 +115,14 @@ async def download_video(
         "quiet": True,
         "no_warnings": True,
         "progress_hooks": [progress_callback],
-        "noprogress": True,
-        "continuedl": False,  # Start fresh, avoid HTTP 416 on stale .part files
-        "overwrites": True,   # Overwrite if file exists
+        "continuedl": False,       # Start fresh, avoid HTTP 416
+        "overwrites": True,        # Overwrite if file exists
+        "retries": 10,             # Retry on transient errors
+        "fragment_retries": 10,    # Retry failed fragments
+        "http_headers": {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        },
+        "concurrent_fragment_downloads": 1,  # Single connection, avoid range issues
     }
 
     if format_id:
