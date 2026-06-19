@@ -77,4 +77,15 @@ export const api = {
   },
 
   getStats: () => request<any>('/stats'),
+
+  getScheduledJobs: () => request<{ jobs: any[] }>('/scheduled-jobs'),
+
+  createScheduledJob: (playlistUrl: string, cronExpr: string) =>
+    request<any>('/scheduled-jobs', {
+      method: 'POST',
+      body: JSON.stringify({ playlist_url: playlistUrl, cron_expr: cronExpr }),
+    }),
+
+  deleteScheduledJob: (id: string) =>
+    request<any>(`/scheduled-jobs/${id}`, { method: 'DELETE' }),
 };

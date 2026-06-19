@@ -66,6 +66,16 @@ async def init_db():
                 ('download_dir', 'downloads'),
                 ('concurrency', '3'),
                 ('filename_template', '%(title)s.%(ext)s');
+
+            CREATE TABLE IF NOT EXISTS scheduled_jobs (
+                id TEXT PRIMARY KEY,
+                playlist_url TEXT NOT NULL,
+                playlist_id TEXT,
+                cron_expr TEXT NOT NULL,
+                enabled INTEGER DEFAULT 1,
+                last_run TEXT,
+                created_at TEXT DEFAULT (datetime('now'))
+            );
         """)
         await db.commit()
     finally:

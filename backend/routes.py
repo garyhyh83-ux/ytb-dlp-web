@@ -2,13 +2,14 @@
 import asyncio
 import json
 import os
+import uuid
 import shutil
 from pathlib import Path
 from fastapi import APIRouter, HTTPException, UploadFile, WebSocket, WebSocketDisconnect
 from database import get_db
 from models import (
     ParseRequest, DownloadRequest, TaskResponse, PlaylistResponse,
-    HistoryQuery, SettingsUpdate, StatsResponse,
+    HistoryQuery, SettingsUpdate, StatsResponse, CreateScheduledJob,
 )
 from task_manager import task_manager
 from ytdlp_service import parse_url
@@ -239,6 +240,45 @@ async def get_stats():
         disk_free_gb=round(disk_free, 1),
         download_dir=download_dir,
     ).model_dump()
+
+
+# ── Scheduled Jobs ─────────────────────────────────
+
+@router.get("/scheduled-jobs")
+async def list_scheduled_jobs():
+    db = await get_db()
+    try:
+        cursor = await db.execute("SELECT * FROM scheduled_jobs ORDER BY created_at DESC")
+        rows = await cursor.fetchall()
+        return {"jobs": [dict(row) for row in rows]}
+    finally:
+        await db.close()
+
+
+@router.post("/scheduled-jobs")
+async def create_scheduled_job(job: CreateScheduledJob):
+    job_id = str(uuid.uuid4())[:8]
+    db = await get_db()
+    try:
+        await db.execute(
+            "INSERT INTO scheduled_jobs (id, playlist_url, cron_expr) VALUES (?, ?, ?)",
+            (job_id, job.playlist_url, job.cron_expr),
+        )
+        await db.commit()
+        return {"id": job_id, "status": "created"}
+    finally:
+        await db.close()
+
+
+@router.delete("/scheduled-jobs/{job_id}")
+async def delete_scheduled_job(job_id: str):
+    db = await get_db()
+    try:
+        await db.execute("DELETE FROM scheduled_jobs WHERE id = ?", (job_id,))
+        await db.commit()
+        return {"status": "deleted"}
+    finally:
+        await db.close()
 
 
 # ── WebSocket ──────────────────────────────────────

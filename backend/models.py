@@ -103,3 +103,18 @@ class StatsResponse(BaseModel):
     active_downloads: int
     disk_free_gb: float
     download_dir: str
+
+
+class ScheduledJob(BaseModel):
+    id: str
+    playlist_url: str
+    playlist_id: Optional[str] = None
+    cron_expr: str
+    enabled: bool = True
+    last_run: Optional[str] = None
+    created_at: Optional[str] = None
+
+
+class CreateScheduledJob(BaseModel):
+    playlist_url: str
+    cron_expr: str = "daily"
