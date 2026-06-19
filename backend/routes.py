@@ -171,6 +171,24 @@ async def list_playlists():
 
 # ── Browse Filesystem ──────────────────────────────
 
+@router.post("/select-directory")
+async def select_directory():
+    """Open native OS folder picker dialog and return selected path."""
+    import tkinter as tk
+    from tkinter import filedialog
+
+    root = tk.Tk()
+    root.withdraw()  # Hide the main window
+    root.attributes('-topmost', True)  # Bring dialog to front
+
+    selected = filedialog.askdirectory(title="选择下载目录")
+    root.destroy()
+
+    if selected:
+        return {"path": os.path.abspath(selected)}
+    return {"path": None}
+
+
 @router.get("/browse")
 async def browse_directories(path: str = ""):
     """List subdirectories at the given path. Used by directory picker."""

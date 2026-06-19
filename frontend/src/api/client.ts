@@ -83,6 +83,9 @@ export const api = {
       `/browse${path ? `?path=${encodeURIComponent(path)}` : ''}`
     ),
 
+  selectDirectory: () =>
+    request<{ path: string | null }>('/select-directory', { method: 'POST' }),
+
   getScheduledJobs: () => request<{ jobs: any[] }>('/scheduled-jobs'),
 
   createScheduledJob: (playlistUrl: string, cronExpr: string) =>
