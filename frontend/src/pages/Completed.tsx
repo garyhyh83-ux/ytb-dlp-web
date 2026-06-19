@@ -34,19 +34,18 @@ export default function Completed() {
             <h2>已完成</h2>
             <p>{total} 个视频</p>
           </div>
-          {total > 0 && (
-            <button
-              className="batch-btn"
-              style={{ color: 'var(--danger)' }}
-              onClick={() => {
-                if (window.confirm('确定要清除所有已完成记录吗？此操作不可撤销。')) {
-                  api.clearHistory().then(() => fetchHistory());
-                }
-              }}
-            >
-              🗑 清除所有记录
-            </button>
-          )}
+          <button
+            className="batch-btn"
+            style={{ color: 'var(--danger)' }}
+            disabled={total === 0}
+            onClick={() => {
+              if (window.confirm('确定要清除所有已完成记录吗？此操作不可撤销。')) {
+                api.clearHistory().then(() => fetchHistory());
+              }
+            }}
+          >
+            🗑 清除所有记录
+          </button>
         </div>
       </div>
 
