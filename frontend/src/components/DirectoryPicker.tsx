@@ -47,9 +47,8 @@ export default function DirectoryPicker({ value, onSelect, onClose }: Props) {
   };
 
   return (
-    <>
-      <div className="dialog-overlay" onClick={onClose} />
-      <div className="dialog dir-picker-dialog">
+    <div className="dialog-overlay" onClick={onClose}>
+      <div className="dialog dir-picker-dialog" onClick={e => e.stopPropagation()}>
         <div className="dialog-title">选择下载目录</div>
 
         <div className="dir-picker-path">
@@ -79,6 +78,6 @@ export default function DirectoryPicker({ value, onSelect, onClose }: Props) {
           </button>
         </div>
       </div>
-    </>
+    </div>
   );
 }
