@@ -1,5 +1,6 @@
 # backend/ytdlp_service.py
 import asyncio
+import os
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial
 from typing import Callable
@@ -82,6 +83,10 @@ async def download_video(
     cookies_path: str | None = None,
 ) -> str:
     """Download a video with progress callbacks. Returns output path."""
+    # Ensure download directory exists (resolve relative paths)
+    download_dir = os.path.abspath(download_dir)
+    os.makedirs(download_dir, exist_ok=True)
+
     ydl_opts = {
         "outtmpl": f"{download_dir}/{filename_template}",
         "quiet": True,

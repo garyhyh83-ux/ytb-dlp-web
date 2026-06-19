@@ -90,16 +90,20 @@ class TaskManager:
                 await self._set_status(task_id, TaskStatus.DOWNLOADING)
                 await self._broadcast()
 
+                # Capture event loop NOW — progress_hook runs in a thread pool
+                # thread where asyncio.get_running_loop() would fail
+                loop = asyncio.get_running_loop()
+
                 def progress_hook(d):
                     if d["status"] == "downloading":
                         asyncio.run_coroutine_threadsafe(
                             self._update_progress(task_id, d),
-                            asyncio.get_running_loop(),
+                            loop,
                         )
                     elif d["status"] == "finished":
                         asyncio.run_coroutine_threadsafe(
                             self._on_file_processed(task_id, d),
-                            asyncio.get_running_loop(),
+                            loop,
                         )
 
                 try:
