@@ -98,7 +98,7 @@ async def list_history(
 ):
     db = await get_db()
     try:
-        query = "SELECT * FROM tasks WHERE status IN ('done', 'failed')"
+        query = "SELECT * FROM tasks WHERE status = 'done'"
         params: list = []
 
         if search:
@@ -123,7 +123,7 @@ async def list_history(
         rows = await cursor.fetchall()
 
         # Get total count
-        count_query = "SELECT COUNT(*) as total FROM tasks WHERE status IN ('done', 'failed')"
+        count_query = "SELECT COUNT(*) as total FROM tasks WHERE status = 'done'"
         count_params: list = []
         if search:
             count_query += " AND title LIKE ?"
