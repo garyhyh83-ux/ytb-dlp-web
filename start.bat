@@ -1,98 +1,84 @@
 @echo off
-chcp 65001 >nul 2>nul
-title yt-dlp Web 启动器
+REM yt-dlp Web Launcher
 cd /d "%~dp0"
 
-echo.
-echo ╔══════════════════════════════════════════╗
-echo ║     yt-dlp Web 视频下载系统 v0.1.0       ║
-echo ╚══════════════════════════════════════════╝
+echo ================================================
+echo       yt-dlp Web Download Manager v0.1.0
+echo ================================================
 echo.
 
-REM ── 检查 Python ──────────────────────────────
+REM ---- Check Python ----
 set PYTHON=
 python --version >nul 2>nul && set PYTHON=python
 py --version >nul 2>nul && set PYTHON=py
 if "%PYTHON%"=="" (
-    echo [✕] 未找到 Python，请安装 Python 3.11+
-    echo     下载地址: https://www.python.org/downloads/
-    echo     安装时务必勾选 "Add Python to PATH"
+    echo [ERROR] Python not found. Install Python 3.11+
+    echo          https://www.python.org/downloads/
+    echo          Check "Add Python to PATH" during install
     pause
     exit /b 1
 )
-echo [✓] Python: %PYTHON%
+echo [OK] Python found
 
-REM ── 检查 Node.js ─────────────────────────────
+REM ---- Check Node.js ----
 node --version >nul 2>nul
 if %errorlevel% neq 0 (
-    echo [✕] 未找到 Node.js，请安装 Node.js
-    echo     下载地址: https://nodejs.org/
+    echo [ERROR] Node.js not found. Install from https://nodejs.org/
     pause
     exit /b 1
 )
-for /f "tokens=*" %%i in ('node --version') do echo [✓] Node.js: %%i
+echo [OK] Node.js found
 
-REM ── 安装后端依赖 ────────────────────────────
-echo.
-python -c "import fastapi, yt_dlp, aiosqlite" 2>nul
+REM ---- Install backend deps ----
+%PYTHON% -c "import fastapi, yt_dlp, aiosqlite" 2>nul
 if %errorlevel% neq 0 (
-    echo [!] 正在安装后端依赖...
+    echo [INFO] Installing backend dependencies...
     %PYTHON% -m pip install -r backend\requirements.txt
     if %errorlevel% neq 0 (
-        echo [✕] 后端依赖安装失败，请检查网络连接
+        echo [ERROR] Failed to install backend deps
         pause
         exit /b 1
     )
 )
-echo [✓] 后端依赖就绪
+echo [OK] Backend deps ready
 
-REM ── 安装前端依赖 ────────────────────────────
+REM ---- Install frontend deps ----
 if not exist "frontend\node_modules" (
-    echo [!] 正在安装前端依赖（首次需要几分钟）...
+    echo [INFO] Installing frontend dependencies (first time, may take a while)...
     cd frontend
     call npm install
     cd ..
-    if %errorlevel% neq 0 (
-        echo [✕] 前端依赖安装失败
-        pause
-        exit /b 1
-    )
 )
-echo [✓] 前端依赖就绪
+echo [OK] Frontend deps ready
 
-REM ── 构建前端（生产模式）─────────────────────
-echo.
-echo [ ] 构建前端...
+REM ---- Build frontend ----
+echo [INFO] Building frontend...
 cd frontend
 call npm run build >nul 2>nul
 cd ..
-if %errorlevel% neq 0 (
-    echo [!] 前端构建失败，将使用开发模式
-)
 
-REM ── 启动后端 ──────────────────────────────────
-echo [✓] 启动后端服务 (端口 8000)...
+REM ---- Start backend ----
+echo [INFO] Starting backend on port 8000...
 start "yt-dlp Backend" cmd /k "cd /d %~dp0backend && %PYTHON% main.py"
 
-REM ── 等待后端就绪 ──────────────────────────────
-echo [ ] 等待后端就绪...（如卡住请检查 8000 端口是否被占用）
+REM ---- Wait for backend ----
+echo [INFO] Waiting for backend to start...
 :wait_backend
 timeout /t 2 /nobreak >nul
 curl -s http://localhost:8000/api/stats >nul 2>nul
 if %errorlevel% neq 0 goto wait_backend
-echo [✓] 后端就绪
+echo [OK] Backend ready
 
-REM ── 打开浏览器 ────────────────────────────────
-echo [✓] 打开浏览器...
+REM ---- Open browser ----
+echo [OK] Opening browser...
 start http://localhost:8000
 
 echo.
-echo ╔══════════════════════════════════════════╗
-echo ║  启动完成！                              ║
-echo ║  地址: http://localhost:8000             ║
-echo ║  API:  http://localhost:8000/docs        ║
-echo ║  关闭两个终端窗口即可停止服务            ║
-echo ╚══════════════════════════════════════════╝
+echo ================================================
+echo   Server running at: http://localhost:8000
+echo   API docs at:       http://localhost:8000/docs
+echo   Close the terminal windows to stop
+echo ================================================
 echo.
 
 pause
