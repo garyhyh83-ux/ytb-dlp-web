@@ -1,88 +1,52 @@
 @echo off
-setlocal enabledelayedexpansion
 cd /d "%~dp0"
-title yt-dlp Web Launcher
 
-echo.
 echo ================================================
 echo       yt-dlp Web Download Manager v0.1.0
 echo ================================================
 echo.
 
-REM ---- Check Python ----
-set PYTHON=
-python --version >nul 2>&1 && set PYTHON=python
-py --version >nul 2>&1 && set PYTHON=py
-if "%PYTHON%"=="" (
-    echo [ERROR] Python not found. Please install Python 3.11+
-    echo         https://www.python.org/downloads/
-    goto :end
+REM ---- Check port 8000 ----
+netstat -ano | findstr ":8000.*LISTENING" >/dev/null 2>&1
+if not errorlevel 1 (
+    echo [WARN] Port 8000 is already in use
+    echo        Close any running yt-dlp backend first
+    echo        Or visit http://localhost:8000 if already started
+    pause
+    exit /b 0
 )
-for /f "tokens=*" %%i in ('%PYTHON% --version 2^>^&1') do echo [OK] %%i
 
-REM ---- Check Node.js ----
-node --version >nul 2>&1
+REM ---- Python check ----
+python --version >/dev/null 2>&1
 if errorlevel 1 (
-    echo [ERROR] Node.js not found. Install from https://nodejs.org/
-    goto :end
+    echo [ERROR] Python not found
+    pause
+    exit /b 1
 )
-for /f "tokens=*" %%i in ('node --version 2^>^&1') do echo [OK] Node %%i
 
-REM ---- Backend deps ----
-%PYTHON% -c "import fastapi, yt_dlp, aiosqlite" >nul 2>&1
+REM ---- Install deps if needed ----
+python -c "import fastapi, yt_dlp, aiosqlite" >/dev/null 2>&1
 if errorlevel 1 (
-    echo.
     echo [INFO] Installing backend dependencies...
-    %PYTHON% -m pip install -r backend\requirements.txt
-    if errorlevel 1 (
-        echo [ERROR] Failed to install. Check your network.
-        goto :end
-    )
+    python -m pip install -r backendequirements.txt
 )
-echo [OK] Backend dependencies ready
 
-REM ---- Frontend deps ----
-if not exist "frontend\node_modules" (
-    echo.
-    echo [INFO] Installing frontend dependencies (downloading packages)...
+REM ---- Build frontend if needed ----
+if not exist "frontend
+ode_modules" (
+    echo [INFO] Installing frontend dependencies...
     cd frontend
     call npm install
-    if errorlevel 1 (
-        cd ..
-        echo [ERROR] npm install failed. Check Node.js and network.
-        goto :end
-    )
     cd ..
 )
-echo [OK] Frontend dependencies ready
-
-REM ---- Build ----
-echo.
 echo [INFO] Building frontend...
 cd frontend
-call npm run build >nul 2>&1
+call npm run build >/dev/null 2>&1
 cd ..
 
-REM ---- Start backend ----
-echo [INFO] Starting backend server...
-start "yt-dlp Backend" cmd /k "cd /d %~dp0backend && %PYTHON% -m uvicorn main:app --host 0.0.0.0 --port 8000"
-
-REM ---- Wait ----
-echo [INFO] Waiting for backend (port 8000)...
-:waitloop
-ping -n 3 127.0.0.1 >nul 2>&1
-curl -s http://localhost:8000/api/stats >nul 2>&1
-if errorlevel 1 goto :waitloop
-echo [OK] Backend is running
-
-REM ---- Done ----
-echo.
-echo ================================================
-echo   Open your browser to: http://localhost:8000
-echo   API docs at:         http://localhost:8000/docs
-echo ================================================
+REM ---- Start server ----
+echo [INFO] Starting server on http://localhost:8000
 start http://localhost:8000
-
-:end
-echo.
+cd backend
+python -m uvicorn main:app --host 0.0.0.0 --port 8000
 pause
