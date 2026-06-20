@@ -12,6 +12,16 @@ async def lifespan(app: FastAPI):
     from database import init_db, get_db
     await init_db()
 
+    # Clean up tasks stuck from previous run
+    db = await get_db()
+    try:
+        await db.execute(
+            "UPDATE tasks SET status = 'failed', error_message = '服务重启，下载中断', status_message = '服务重启导致中断' WHERE status IN ('pending', 'downloading', 'paused')"
+        )
+        await db.commit()
+    finally:
+        await db.close()
+
     # Start scheduled job checker
     async def scheduler_loop():
         while True:
