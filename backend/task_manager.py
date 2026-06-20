@@ -132,22 +132,28 @@ class TaskManager:
             async with self._semaphore:
                 if task_id in self._cancelled_tasks:
                     return
-                await self._set_status(task_id, TaskStatus.DOWNLOADING)
+                await self._set_status(task_id, TaskStatus.DOWNLOADING, msg="正在连接...")
                 await self._broadcast()
 
                 # Capture event loop NOW — progress_hook runs in a thread pool
-                # thread where asyncio.get_running_loop() would fail
                 loop = asyncio.get_running_loop()
 
                 def progress_hook(d):
-                    if d["status"] == "downloading":
+                    status = d.get("status", "")
+                    if status == "downloading":
                         asyncio.run_coroutine_threadsafe(
                             self._update_progress(task_id, d),
                             loop,
                         )
-                    elif d["status"] == "finished":
+                    elif status == "finished":
                         asyncio.run_coroutine_threadsafe(
                             self._on_file_processed(task_id, d),
+                            loop,
+                        )
+                    else:
+                        # "error", "postprocessing", etc.
+                        asyncio.run_coroutine_threadsafe(
+                            self._set_status(task_id, None, msg=f"处理中: {status}"),
                             loop,
                         )
 
@@ -157,16 +163,33 @@ class TaskManager:
                         task_id=task_id,
                         download_dir=download_dir,
                         format_id=task["format_id"],
-                        subtitle_lang=None,  # stored in task if needed
+                        subtitle_lang=None,
                         filename_template=filename_template,
                         progress_callback=progress_hook,
                     )
-                    await self._set_status(task_id, TaskStatus.DONE, output_path=output)
-                    # Update playlist count if part of one
+                    await self._set_status(task_id, TaskStatus.DONE,
+                        output_path=output, msg="下载完成")
                     if task["playlist_id"]:
                         await self._increment_playlist(task["playlist_id"])
+                except asyncio.CancelledError:
+                    raise
                 except Exception as e:
-                    await self._set_status(task_id, TaskStatus.FAILED, error=str(e))
+                    err_msg = str(e)
+                    # Give friendly hints for common errors
+                    if "403" in err_msg or "Forbidden" in err_msg:
+                        hint = "网络受限，请尝试设置代理或导入Cookie"
+                    elif "416" in err_msg:
+                        hint = "下载断点异常，请重试"
+                    elif "resolve" in err_msg.lower() or "getaddrinfo" in err_msg:
+                        hint = "无法解析域名，请检查网络连接"
+                    elif "timeout" in err_msg.lower() or "timed out" in err_msg:
+                        hint = "连接超时，请检查网络"
+                    elif "503" in err_msg or "Unavailable" in err_msg:
+                        hint = "服务器繁忙，请稍后重试"
+                    else:
+                        hint = "下载失败，请重试"
+                    await self._set_status(task_id, TaskStatus.FAILED,
+                        error=err_msg, msg=hint)
                 finally:
                     await self._broadcast()
 
@@ -181,10 +204,24 @@ class TaskManager:
                 percent = float(percent_str.rstrip("%"))
             else:
                 percent = 0
+
+            # Human-readable status message
+            speed = progress_data.get("speed")
+            eta = progress_data.get("eta")
+            if percent > 0 and speed and speed > 0:
+                speed_str = _format_speed(speed)
+                msg = f"下载中 {speed_str}"
+            elif percent > 0:
+                msg = f"下载中 {percent:.0f}%"
+            elif speed and speed == 0:
+                msg = "正在连接服务器..."
+            else:
+                msg = "正在解析视频信息..."
+
             await db.execute(
                 """UPDATE tasks SET progress_percent = ?,
                    downloaded_bytes = ?, total_bytes = ?,
-                   speed = ?, eta = ?,
+                   speed = ?, eta = ?, status_message = ?,
                    updated_at = datetime('now')
                    WHERE id = ?""",
                 (
@@ -193,6 +230,7 @@ class TaskManager:
                     progress_data.get("total_bytes") or progress_data.get("total_bytes_estimate"),
                     progress_data.get("speed"),
                     progress_data.get("eta"),
+                    msg,
                     task_id,
                 ),
             )
@@ -213,14 +251,31 @@ class TaskManager:
         finally:
             await db.close()
 
-    async def _set_status(self, task_id: str, status: TaskStatus,
-                          output_path: str | None = None, error: str | None = None):
+    async def _set_status(self, task_id: str, status: TaskStatus | None = None,
+                          output_path: str | None = None, error: str | None = None,
+                          msg: str | None = None):
         db = await get_db()
         try:
+            parts = []
+            params: list = []
+            if status is not None:
+                parts.append("status = ?")
+                params.append(status.value)
+            if output_path is not None:
+                parts.append("output_path = COALESCE(?, output_path)")
+                params.append(output_path)
+            if error is not None:
+                parts.append("error_message = ?")
+                params.append(error)
+            if msg is not None:
+                parts.append("status_message = ?")
+                params.append(msg)
+            parts.append("updated_at = datetime('now')")
+            params.append(task_id)
+
             await db.execute(
-                """UPDATE tasks SET status = ?, output_path = COALESCE(?, output_path),
-                   error_message = ?, updated_at = datetime('now') WHERE id = ?""",
-                (status.value, output_path, error, task_id),
+                f"UPDATE tasks SET {', '.join(parts)} WHERE id = ?",
+                params,
             )
             await db.commit()
         finally:
@@ -339,6 +394,16 @@ class TaskManager:
             # _ws_broadcast may be sync (lambda) or async (websocket handler)
             if hasattr(result, '__await__'):
                 await result
+
+
+def _format_speed(bytes_per_sec) -> str:
+    if bytes_per_sec is None:
+        return ""
+    if bytes_per_sec >= 1_000_000:
+        return f"{bytes_per_sec / 1_000_000:.1f} MB/s"
+    if bytes_per_sec >= 1_000:
+        return f"{bytes_per_sec / 1_000:.0f} KB/s"
+    return f"{bytes_per_sec:.0f} B/s"
 
 
 # Singleton

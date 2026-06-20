@@ -65,6 +65,7 @@ class TaskResponse(BaseModel):
     file_size: Optional[int] = None
     playlist_id: Optional[str] = None
     playlist_index: Optional[int] = None
+    status_message: Optional[str] = None
     error_message: Optional[str] = None
     created_at: Optional[str] = None
     updated_at: Optional[str] = None

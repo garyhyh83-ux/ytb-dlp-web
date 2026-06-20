@@ -117,6 +117,10 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onUpdate }) => {
           </div>
           <div className="task-meta text-muted">{formatMeta}</div>
 
+          {(isActive || isPaused) && task.status_message && (
+            <div className="task-status-msg">{task.status_message}</div>
+          )}
+
           {(isActive || isPaused) && (
             <ProgressBar
               percent={task.progress_percent}

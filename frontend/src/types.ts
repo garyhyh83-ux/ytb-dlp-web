@@ -20,6 +20,7 @@ export interface Task {
   file_size: number | null;
   playlist_id: string | null;
   playlist_index: number | null;
+  status_message: string | null;
   error_message: string | null;
   created_at: string | null;
   updated_at: string | null;

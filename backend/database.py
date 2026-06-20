@@ -19,6 +19,12 @@ async def init_db():
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     db = await get_db()
     try:
+        # Migration: add status_message column if upgrading from older schema
+        try:
+            await db.execute("ALTER TABLE tasks ADD COLUMN status_message TEXT DEFAULT '等待中'")
+        except Exception:
+            pass  # Column already exists
+
         await db.executescript("""
             CREATE TABLE IF NOT EXISTS tasks (
                 id TEXT PRIMARY KEY,
@@ -38,6 +44,7 @@ async def init_db():
                 file_size INTEGER,
                 playlist_id TEXT,
                 playlist_index INTEGER,
+                status_message TEXT DEFAULT '等待中',
                 error_message TEXT,
                 created_at TEXT DEFAULT (datetime('now')),
                 updated_at TEXT DEFAULT (datetime('now')),
